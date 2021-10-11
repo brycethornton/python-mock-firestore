@@ -487,3 +487,8 @@ class TestCollectionReference(TestCase):
         }}
         doc = fs.collection('foo').document(document_id='first').get()
         self.assertEqual({'id': 1}, doc.to_dict())
+
+    def test_collection_idPropertyReturnPath(self):
+        fs = MockFirestore()
+        collection = fs.collection('bar')
+        self.assertEqual('bar', collection.id)
