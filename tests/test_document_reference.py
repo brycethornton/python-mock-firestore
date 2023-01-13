@@ -129,6 +129,14 @@ class TestDocumentReference(TestCase):
         doc = fs.collection('foo').document('bar').get().to_dict()
         self.assertEqual({'id': 'bar'}, doc)
 
+    def test_document_set_with_timeout(self):
+        fs = MockFirestore()
+        fs._data = {'foo': {}}
+        doc_content = {'id': 'bar'}
+        fs.collection('foo').document('bar').set(doc_content, timeout=5)
+        doc = fs.collection('foo').document('bar').get().to_dict()
+        self.assertEqual(doc_content, doc)
+
     def test_document_update_addNewValue(self):
         fs = MockFirestore()
         fs._data = {'foo': {
