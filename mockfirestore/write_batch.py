@@ -62,12 +62,6 @@ class WriteBatch:
                         "No document to update: {}".format(operation["ref"]._path)
                     )
             elif operation["type"] == "delete":
-                print(
-                    f"operation: {operation} ref: {operation['ref']._path} data: {self._mock_firestore._data}"
-                )
-                # delete_by_path(self._mock_firestore._data, operation["ref"]._path)
-                print(f"data after delete_by_path: {self._mock_firestore._data}")
                 # Ensure the document is marked as non-existent
                 set_by_path(self._mock_firestore._data, operation["ref"]._path, None)
-                print(f"data after set_by_path: {self._mock_firestore._data}")
         self._operations.clear()
