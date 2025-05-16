@@ -133,6 +133,43 @@ class TestCollectionReference(TestCase):
         docs = list(fs.collection('foo').where('no_field', '==', 1).stream())
         self.assertEqual(len(docs), 0)
 
+    def test_collection_where_with_filter_object(self):
+        fs = MockFirestore()
+        fs._data = {'foo': {
+            'first': {'valid': True, 'num': 1},
+            'second': {'valid': False, 'num': 2},
+            'third': {'valid': True, 'num': 3}
+        }}
+
+        # Define a helper class to mimic FieldFilter
+        class MockFieldFilter:
+            def __init__(self, field_path, op_string, value):
+                self.field_path = field_path
+                self.op_string = op_string
+                self.value = value
+
+        # Test with a FieldFilter-like object
+        mock_filter = MockFieldFilter('valid', '==', True)
+        docs = list(fs.collection('foo').where(filter=mock_filter).stream())
+        self.assertEqual(len(docs), 2)
+        self.assertEqual({'valid': True, 'num': 1}, docs[0].to_dict())
+        self.assertEqual({'valid': True, 'num': 3}, docs[1].to_dict())
+
+        # Test with another FieldFilter-like object
+        mock_filter_num = MockFieldFilter('num', '>', 1)
+        docs_num = list(fs.collection('foo').where(filter=mock_filter_num).stream())
+        self.assertEqual(len(docs_num), 2)
+        # Note: Default order is by document ID, so 'second' comes before 'third'
+        self.assertEqual({'valid': False, 'num': 2}, docs_num[0].to_dict())
+        self.assertEqual({'valid': True, 'num': 3}, docs_num[1].to_dict())
+        
+        # Test that it raises ValueError if not enough arguments are provided
+        with self.assertRaises(ValueError):
+            fs.collection('foo').where(field='valid').stream()
+
+        with self.assertRaises(ValueError):
+            fs.collection('foo').where(filter=None, field='valid', op='==').stream()
+
     def test_collection_whereNestedField(self):
         fs = MockFirestore()
         fs._data = {'foo': {

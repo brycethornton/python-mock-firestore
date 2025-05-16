@@ -45,8 +45,22 @@ class CollectionReference:
         timestamp = Timestamp.from_now()
         return timestamp, doc_ref
 
-    def where(self, field: str, op: str, value: Any) -> Query:
-        query = Query(self, field_filters=[(field, op, value)])
+    def where(self, field: Optional[str] = None, op: Optional[str] = None,
+              value: Optional[Any] = None, filter: Optional[Any] = None) -> Query:
+        if filter is not None:
+            # Assuming filter is an object with field_path, op_string, and value attributes
+            # similar to google.cloud.firestore_v1.base_query.FieldFilter
+            field_path = filter.field_path
+            op_string = filter.op_string
+            val = filter.value
+        elif field is not None and op is not None and value is not None:
+            field_path = field
+            op_string = op
+            val = value
+        else:
+            raise ValueError("Either 'filter' or all of 'field', 'op', and 'value' must be provided.")
+
+        query = Query(self, field_filters=[(field_path, op_string, val)])
         return query
 
     def order_by(self, key: str, direction: Optional[str] = None) -> Query:
