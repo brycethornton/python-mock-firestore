@@ -7,7 +7,7 @@ from mockfirestore._helpers import T
 
 
 class Query:
-    def __init__(self, parent: 'CollectionReference', projection=None,
+    def __init__(self, parent: Any, projection=None,
                  field_filters=(), orders=(), limit=None, offset=None,
                  start_at=None, end_at=None, all_descendants=False) -> None:
         self.parent = parent
@@ -61,8 +61,22 @@ class Query:
         compare = self._compare_func(op)
         self._field_filters.append((field, compare, value))
 
-    def where(self, field: str, op: str, value: Any) -> 'Query':
-        self._add_field_filter(field, op, value)
+    def where(self, field: Optional[str] = None, op: Optional[str] = None,
+              value: Optional[Any] = None, filter: Optional[Any] = None) -> 'Query':
+        if filter is not None:
+            # Assuming filter is an object with field_path, op_string, and value attributes
+            # similar to google.cloud.firestore_v1.base_query.FieldFilter
+            field_path = filter.field_path
+            op_string = filter.op_string
+            val = filter.value
+        elif field is not None and op is not None and value is not None:
+            field_path = field
+            op_string = op
+            val = value
+        else:
+            raise ValueError("Either 'filter' or all of 'field', 'op', and 'value' must be provided.")
+
+        self._add_field_filter(field_path, op_string, val)
         return self
 
     def order_by(self, key: str, direction: Optional[str] = 'ASCENDING') -> 'Query':

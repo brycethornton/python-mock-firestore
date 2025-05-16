@@ -170,6 +170,47 @@ class TestCollectionReference(TestCase):
         with self.assertRaises(ValueError):
             fs.collection('foo').where(filter=None, field='valid', op='==').stream()
 
+    def test_query_where_with_filter_object_on_existing_query(self):
+        fs = MockFirestore()
+        fs._data = {'foo': {
+            'first': {'category': 'A', 'status': 'active', 'num': 1},
+            'second': {'category': 'B', 'status': 'inactive', 'num': 2},
+            'third': {'category': 'A', 'status': 'active', 'num': 3},
+            'fourth': {'category': 'A', 'status': 'pending', 'num': 4}
+        }}
+
+        # Define a helper class to mimic FieldFilter (can be defined at module level or within test if preferred)
+        class MockFieldFilter:
+            def __init__(self, field_path, op_string, value):
+                self.field_path = field_path
+                self.op_string = op_string
+                self.value = value
+
+        # Initial query using traditional arguments
+        query = fs.collection('foo').where('category', '==', 'A')
+
+        # Chain another .where() call using the filter argument
+        status_filter = MockFieldFilter('status', '==', 'active')
+        final_query = query.where(filter=status_filter)
+
+        docs = list(final_query.stream())
+        self.assertEqual(len(docs), 2)
+        # Documents should be {'category': 'A', 'status': 'active', 'num': 1}
+        # and {'category': 'A', 'status': 'active', 'num': 3}
+        # Default order is by document ID: 'first', then 'third'
+        self.assertIn({'category': 'A', 'status': 'active', 'num': 1}, [d.to_dict() for d in docs])
+        self.assertIn({'category': 'A', 'status': 'active', 'num': 3}, [d.to_dict() for d in docs])
+        
+        # Test another chained filter
+        query_gt_num = fs.collection('foo').where('num', '>', 1) # num 2, 3, 4
+        category_filter = MockFieldFilter('category', '==', 'A') # num 3, 4
+        final_query_gt_num = query_gt_num.where(filter=category_filter)
+        
+        docs_gt_num = list(final_query_gt_num.stream())
+        self.assertEqual(len(docs_gt_num), 2)
+        self.assertIn({'category': 'A', 'status': 'active', 'num': 3}, [d.to_dict() for d in docs_gt_num])
+        self.assertIn({'category': 'A', 'status': 'pending', 'num': 4}, [d.to_dict() for d in docs_gt_num])
+
     def test_collection_whereNestedField(self):
         fs = MockFirestore()
         fs._data = {'foo': {
